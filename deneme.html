@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Isı Verileri</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        body {
+            font-family: Arial;
+            background: #111;
+            color: #fff;
+            text-align: center;
+            padding-top: 50px;
+        }
+        .box {
+            background: #222;
+            padding: 20px;
+            border-radius: 10px;
+            display: inline-block;
+            font-size: 30px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>🔥 Son Isı Değeri</h1>
+    <div class="box" id="heatBox">Yükleniyor...</div>
+
+    <script>
+        const supabaseUrl = "https://khaaelquexhoxwqbnhjs.supabase.co"; // senin URL
+        const supabaseKey = "PUBLISHABLE KEY BURAYA"; // publishable key!
+        
+        const db = supabase.createClient(supabaseUrl, supabaseKey);
+
+        async function getLastHeat() {
+            let { data, error } = await db
+                .from("bilsem")
+                .select("heat")
+                .order("id", { ascending: false })
+                .limit(1);
+
+            if (error) {
+                document.getElementById("heatBox").innerHTML = "Hata!";
+                console.log(error);
+                return;
+            }
+
+            if (data.length > 0) {
+                document.getElementById("heatBox").innerHTML = data[0].heat + " °C";
+            }
+        }
+
+        // her 2 saniyede bir güncelle
+        setInterval(getLastHeat, 2000);
+        getLastHeat();
+    </script>
+
+</body>
+</html>
