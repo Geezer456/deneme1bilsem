@@ -365,7 +365,7 @@
     async function fetchTemperature() {
       let { data, error } = await db
         .from('bilsem')
-        .select('sic')
+        .select('heat')
         .order('id',{ ascending:false })
         .limit(1);
 
