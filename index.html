@@ -359,26 +359,34 @@
       el('ramCount').textContent = sensorHistory.length;
     }
 
-    // -----------------------------
-    // Supabase Sıcaklık Çekme
-    // -----------------------------
-    async function fetchTemperature() {
-      let { data, error } = await db
-        .from('bilsem')
-        .select('heat')
-        .order('id',{ ascending:false })
-        .limit(1);
+// -----------------------------
+// Supabase Tüm Verileri Çekme
+// -----------------------------
+async function fetchTemperature() {
+  let { data, error } = await db
+    .from('bilsem')
+    .select('heat, nem, pot, pump')
+    .order('id', { ascending: false })
+    .limit(1);
 
-      if (error) {
-        console.log('Supabase Hata:', error);
-        return;
-      }
+  if (error) {
+    console.log('Supabase Hata:', error);
+    return;
+  }
 
-      if(data && data.length>0){
-        const values = { sic: data[0].heat };
-        handleParsedValues(values);
-      }
-    }
+  if (data && data.length > 0) {
+    const row = data[0];
+
+    const values = {
+      sic: row.heat,   // sıcaklık
+      nem: row.nem,    // toprak nemi
+      pot: row.pot,    // potansiyometre
+      pump: row.pump   // pompa açık/kapalı
+    };
+
+    handleParsedValues(values);
+  }
+}
 
     // -----------------------------
     // Demo/Seri veri işleme (diğerleri)
