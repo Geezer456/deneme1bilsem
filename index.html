@@ -127,7 +127,7 @@
     <header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
       <div>
         <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Arduino Sensör Dashboardu</h1>
-        <p class="muted mt-1 text-sm">Seri porttan gelen veriler RAM'de tutulur, son ölçümler grafikte gösterilir.</p>
+        <p class="muted mt-1 text-sm">Seri porttan gelen veriler SupaBase'de tutulur, son 20 ölçüm grafikte gösterilir.</p>
       </div>
 
       <div class="flex flex-wrap items-center gap-3">
@@ -136,9 +136,7 @@
           <span id="connText" class="font-semibold">Bağlantı: Bekleniyor</span>
         </span>
 
-        <button id="demoBtn" class="rounded-full px-5 py-2.5 text-sm font-semibold" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
-          Demo Başlat
-        </button>
+        
         <button id="clearBtn" class="rounded-full px-5 py-2.5 text-sm font-semibold" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
           Geçmişi Temizle
         </button>
@@ -168,7 +166,6 @@
             <div class="mt-4 flex items-center gap-3">
               <span id="pumpDot" class="dot"></span>
               <div class="text-sm font-semibold" id="pumpText">Pompa Kapalı</div>
-              <span class="ml-auto text-xs muted">(pump: 0/1)</span>
             </div>
           </div>
 
@@ -189,7 +186,6 @@
             <div class="mt-4 flex items-center justify-between">
               <div>
                 <div class="text-sm font-semibold">Durum: <span id="tempStatus">Normal</span></div>
-                <div class="text-xs muted mt-1">Soğuk &lt; 15°C · Normal 15–27°C · Sıcak &gt; 27°C</div>
               </div>
               <span class="temp-led" id="tempLed" aria-label="Sıcaklık LED"></span>
             </div>
@@ -200,29 +196,13 @@
         <section class="card rounded-2xl p-6">
           <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4">
             <div>
-              <p class="text-xs font-bold tracking-widest uppercase muted">Tüm Sensör Verileri Geçmişi</p>
-              <h2 class="text-lg font-bold">Son <span id="visiblePoints">20</span> ölçüm grafikte (RAM'de daha fazlası tutulur)</h2>
-            </div>
-            <div class="text-xs muted">
-              Format örneği: <span class="kbd">nem:45;sic:23.5;pot:512;pump:1</span>
+              <p class="text-xs font-bold tracking-widest uppercase muted">SENSÖR VERİLERİ GEÇMİŞİ</p>
+              <h2 class="text-lg font-bold">Son <span id="visiblePoints">20</span> ölçüm grafikte (SupaBase'de daha fazlası tutulur)</h2>
             </div>
           </div>
           <div class="h-[380px]">
             <canvas id="sensorChart"></canvas>
           </div>
-        </section>
-
-        <!-- Seri Port Notları -->
-        <section class="mt-6">
-          <details class="card rounded-2xl p-5">
-            <summary class="cursor-pointer font-semibold">Seri Port Notları (okuma & format)</summary>
-            <div class="mt-3 text-sm muted leading-relaxed">
-              <ul class="list-disc pl-5">
-                <li>Demo modunda sıcaklık, nem, pot ve pump verileri çalışır.</li>
-                <li>Supabase’den sıcaklık (`sic`) verisi alınır.</li>
-              </ul>
-            </div>
-          </details>
         </section>
       </main>
 
@@ -230,7 +210,7 @@
       <aside class="lg:col-span-1 flex flex-col gap-6">
         <section class="card rounded-2xl p-6">
           <p class="text-xs font-bold tracking-widest uppercase muted">Tahmin / Prognoz</p>
-          <div class="metric-value text-2xl mt-2" id="predictionText">Veri bekleniyor...</div>
+          <div class="metric-value text-2xl mt-2" id="predictionText">Berrak Bekleniyor...</div>
           <p class="text-sm muted mt-2">Sıcaklık verisine göre basit eğilim sınıflandırması yapılır.</p>
         </section>
 
@@ -238,12 +218,8 @@
           <p class="text-xs font-bold tracking-widest uppercase muted">Sistem Özeti</p>
           <ul class="mt-3 space-y-3 text-sm">
             <li class="flex items-center justify-between">
-              <span class="muted">Geçmiş Veri (RAM)</span>
+              <span class="muted">Geçmiş Veri (SupaBase)</span>
               <span class="font-semibold"><span id="ramCount">0</span> nokta</span>
-            </li>
-            <li class="flex items-center justify-between">
-              <span class="muted">Grafikte Gösterilen</span>
-              <span class="font-semibold"><span id="visibleCount">0</span> nokta</span>
             </li>
             <li class="flex items-center justify-between">
               <span class="muted">Son Güncelleme</span>
@@ -251,17 +227,9 @@
             </li>
             <li class="flex items-center justify-between">
               <span class="muted">Pompa Kontrol</span>
-              <span class="font-semibold">Otomatik / Harici</span>
+              <span class="font-semibold">Harici</span>
             </li>
           </ul>
-        </section>
-
-        <section class="card rounded-2xl p-6">
-          <p class="text-xs font-bold tracking-widest uppercase muted">RAM Limiti</p>
-          <p class="text-sm mt-2">
-            Maks. <strong id="maxRam">50000</strong> nokta (koruma amaçlı). Bu sayıyı aşarsa en eski veriler silinir.
-          </p>
-          <p class="text-xs muted mt-2">Not: Gerçek bellek kullanımı tarayıcıya ve veri yapısına göre değişir.</p>
         </section>
       </aside>
     </div>
