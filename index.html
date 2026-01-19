@@ -1,63 +1,449 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Isı Verileri</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Arduino Sensör Dashboardu | RAM Bellek & Grafik</title>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Tailwind (zorunlu) -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 
-    <style>
-        body {
-            font-family: Arial;
-            background: #111;
-            color: #fff;
-            text-align: center;
-            padding-top: 50px;
-        }
-        .box {
-            background: #222;
-            padding: 20px;
-            border-radius: 10px;
-            display: inline-block;
-            font-size: 30px;
-        }
-    </style>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap');
+    /* ...tüm eski CSS aynen kalıyor... */
+    :root {
+      --bg-primary: #f8f9fa;
+      --bg-secondary: #ffffff;
+      --text-color: #212529;
+      --text-muted: #6c757d;
+      --border-color: #e9ecef;
+      --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      --accent: #007bff;
+      --good: #28a745;
+      --warn: #ffc107;
+      --bad: #dc3545;
+      --grid: rgba(0,0,0,0.08);
+    }
+
+    body.dark {
+      --bg-primary: #0f1115;
+      --bg-secondary: #171a21;
+      --text-color: #e8eaf0;
+      --text-muted: #aab0bf;
+      --border-color: #2a2f3a;
+      --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+      --accent: #28a745;
+      --grid: rgba(255,255,255,0.10);
+    }
+
+    html, body { height: 100%; }
+    body {
+      font-family: 'Poppins', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-color);
+      transition: background-color .25s ease, color .25s ease;
+    }
+
+    .card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      box-shadow: var(--card-shadow);
+    }
+
+    .metric-value { font-weight: 800; letter-spacing: -0.02em; }
+
+    .bar {
+      height: 8px;
+      background: color-mix(in srgb, var(--border-color) 75%, transparent);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .bar > div {
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      transition: width .25s ease;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      display: inline-block;
+      background: var(--bad);
+      box-shadow: 0 0 12px color-mix(in srgb, var(--bad) 60%, transparent);
+      vertical-align: middle;
+    }
+    .dot.on {
+      background: var(--good);
+      box-shadow: 0 0 12px color-mix(in srgb, var(--good) 70%, transparent);
+    }
+
+    .temp-led {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      display: inline-block;
+      background: #4b5563;
+      box-shadow: 0 0 0 transparent;
+    }
+
+    .temp-normal { border-left: 6px solid var(--good); }
+    .temp-warm   { border-left: 6px solid var(--bad); }
+    .temp-cold   { border-left: 6px solid var(--accent); }
+
+    .temp-normal .temp-led { background: var(--good); box-shadow: 0 0 18px color-mix(in srgb, var(--good) 75%, transparent); }
+    .temp-warm   .temp-led { background: var(--bad);  box-shadow: 0 0 18px color-mix(in srgb, var(--bad) 75%, transparent); }
+    .temp-cold   .temp-led { background: var(--accent); box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 75%, transparent); }
+
+    /* Chart canvas arkaplanı */
+    #sensorChart {
+      background: transparent;
+    }
+
+    .kbd {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+      background: color-mix(in srgb, var(--border-color) 70%, transparent);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 2px 8px;
+      font-size: 12px;
+      color: var(--text-color);
+    }
+
+    .muted { color: var(--text-muted); }
+  </style>
 </head>
 
-<body>
+<body class="dark">
+  <div class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
+      <div>
+        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Arduino Sensör Dashboardu</h1>
+        <p class="muted mt-1 text-sm">Seri porttan gelen veriler RAM'de tutulur, son ölçümler grafikte gösterilir.</p>
+      </div>
 
-    <h1>🔥 Son Isı Değeri</h1>
-    <div class="box" id="heatBox">Yükleniyor...</div>
+      <div class="flex flex-wrap items-center gap-3">
+        <span id="connBadge" class="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm border" style="border-color: var(--border-color); background: var(--bg-secondary);">
+          <span id="connDot" class="dot"></span>
+          <span id="connText" class="font-semibold">Bağlantı: Bekleniyor</span>
+        </span>
 
-    <script>
-        const supabaseUrl = "https://khaaelquexhoxwqbnhjs.supabase.co"; // senin URL
-        const supabaseKey = "sb_publishable_w7s6RByp1vSE0gx-KnFLww_vY-78-qZ"; // publishable key!
-        
-        const db = supabase.createClient(supabaseUrl, supabaseKey);
+        <button id="demoBtn" class="rounded-full px-5 py-2.5 text-sm font-semibold" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
+          Demo Başlat
+        </button>
+        <button id="clearBtn" class="rounded-full px-5 py-2.5 text-sm font-semibold" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
+          Geçmişi Temizle
+        </button>
+        <button id="themeBtn" class="rounded-full px-5 py-2.5 text-sm font-semibold" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
+          Açık Tema
+        </button>
+      </div>
+    </header>
 
-        async function getLastHeat() {
-            let { data, error } = await db
-                .from("bilsem")
-                .select("heat")
-                .order("id", { ascending: false })
-                .limit(1);
+    <!-- Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <main class="lg:col-span-3">
+        <!-- Cards row -->
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <!-- Soil -->
+          <div class="card rounded-2xl p-6">
+            <div class="flex items-start justify-between">
+              <div>
+                <p class="text-xs font-bold tracking-widest uppercase muted">Toprak Nemi</p>
+                <div class="metric-value text-4xl mt-2" id="soilText">0%</div>
+              </div>
+              <div class="text-sm font-semibold" style="color: var(--accent);">%</div>
+            </div>
+            <div class="bar mt-4">
+              <div id="soilBar" style="background: var(--good);"></div>
+            </div>
+            <div class="mt-4 flex items-center gap-3">
+              <span id="pumpDot" class="dot"></span>
+              <div class="text-sm font-semibold" id="pumpText">Pompa Kapalı</div>
+              <span class="ml-auto text-xs muted">(pump: 0/1)</span>
+            </div>
+          </div>
 
-            if (error) {
-                document.getElementById("heatBox").innerHTML = "Hata!";
-                console.log(error);
-                return;
-            }
+          <!-- Pot -->
+          <div class="card rounded-2xl p-6">
+            <p class="text-xs font-bold tracking-widest uppercase muted">Potansiyometre</p>
+            <div class="metric-value text-4xl mt-2" id="potText">0</div>
+            <div class="bar mt-4">
+              <div id="potBar" style="background: var(--warn);"></div>
+            </div>
+            <div class="mt-3 text-xs muted">Aralık: 0–1023</div>
+          </div>
 
-            if (data.length > 0) {
-                document.getElementById("heatBox").innerHTML = data[0].heat + " °C";
-            }
+          <!-- Temp -->
+          <div class="card rounded-2xl p-6 temp-normal" id="tempCard">
+            <p class="text-xs font-bold tracking-widest uppercase muted">Sıcaklık</p>
+            <div class="metric-value text-4xl mt-2" id="tempText">0.0°C</div>
+            <div class="mt-4 flex items-center justify-between">
+              <div>
+                <div class="text-sm font-semibold">Durum: <span id="tempStatus">Normal</span></div>
+                <div class="text-xs muted mt-1">Soğuk &lt; 15°C · Normal 15–27°C · Sıcak &gt; 27°C</div>
+              </div>
+              <span class="temp-led" id="tempLed" aria-label="Sıcaklık LED"></span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Chart -->
+        <section class="card rounded-2xl p-6">
+          <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4">
+            <div>
+              <p class="text-xs font-bold tracking-widest uppercase muted">Tüm Sensör Verileri Geçmişi</p>
+              <h2 class="text-lg font-bold">Son <span id="visiblePoints">20</span> ölçüm grafikte (RAM'de daha fazlası tutulur)</h2>
+            </div>
+            <div class="text-xs muted">
+              Format örneği: <span class="kbd">nem:45;sic:23.5;pot:512;pump:1</span>
+            </div>
+          </div>
+          <div class="h-[380px]">
+            <canvas id="sensorChart"></canvas>
+          </div>
+        </section>
+
+        <!-- Seri Port Notları -->
+        <section class="mt-6">
+          <details class="card rounded-2xl p-5">
+            <summary class="cursor-pointer font-semibold">Seri Port Notları (okuma & format)</summary>
+            <div class="mt-3 text-sm muted leading-relaxed">
+              <ul class="list-disc pl-5">
+                <li>Demo modunda sıcaklık, nem, pot ve pump verileri çalışır.</li>
+                <li>Supabase’den sıcaklık (`sic`) verisi alınır.</li>
+              </ul>
+            </div>
+          </details>
+        </section>
+      </main>
+
+      <!-- Sidebar -->
+      <aside class="lg:col-span-1 flex flex-col gap-6">
+        <section class="card rounded-2xl p-6">
+          <p class="text-xs font-bold tracking-widest uppercase muted">Tahmin / Prognoz</p>
+          <div class="metric-value text-2xl mt-2" id="predictionText">Veri bekleniyor...</div>
+          <p class="text-sm muted mt-2">Sıcaklık verisine göre basit eğilim sınıflandırması yapılır.</p>
+        </section>
+
+        <section class="card rounded-2xl p-6">
+          <p class="text-xs font-bold tracking-widest uppercase muted">Sistem Özeti</p>
+          <ul class="mt-3 space-y-3 text-sm">
+            <li class="flex items-center justify-between">
+              <span class="muted">Geçmiş Veri (RAM)</span>
+              <span class="font-semibold"><span id="ramCount">0</span> nokta</span>
+            </li>
+            <li class="flex items-center justify-between">
+              <span class="muted">Grafikte Gösterilen</span>
+              <span class="font-semibold"><span id="visibleCount">0</span> nokta</span>
+            </li>
+            <li class="flex items-center justify-between">
+              <span class="muted">Son Güncelleme</span>
+              <span class="font-semibold" id="lastUpdate">—</span>
+            </li>
+            <li class="flex items-center justify-between">
+              <span class="muted">Pompa Kontrol</span>
+              <span class="font-semibold">Otomatik / Harici</span>
+            </li>
+          </ul>
+        </section>
+
+        <section class="card rounded-2xl p-6">
+          <p class="text-xs font-bold tracking-widest uppercase muted">RAM Limiti</p>
+          <p class="text-sm mt-2">
+            Maks. <strong id="maxRam">50000</strong> nokta (koruma amaçlı). Bu sayıyı aşarsa en eski veriler silinir.
+          </p>
+          <p class="text-xs muted mt-2">Not: Gerçek bellek kullanımı tarayıcıya ve veri yapısına göre değişir.</p>
+        </section>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    // -----------------------------
+    // Supabase Ayarları
+    // -----------------------------
+    const supabaseUrl = "https://khaaelquexhoxwqbnhjs.supabase.co";
+    const supabaseKey = "sb_publishable_w7s6RByp1vSE0gx-KnFLww_vY-78-qZ";
+    const db = supabase.createClient(supabaseUrl, supabaseKey);
+
+    // -----------------------------
+    // Temel Ayarlar
+    // -----------------------------
+    const CHART_VISIBLE_POINTS = 20;
+    const MAX_RAM_POINTS = 50000;
+
+    let demoTimer = null;
+    let sensorHistory = [];
+    let chart = null;
+
+    const el = (id) => document.getElementById(id);
+
+    el('visiblePoints').textContent = CHART_VISIBLE_POINTS;
+    el('maxRam').textContent = MAX_RAM_POINTS;
+
+    // -----------------------------
+    // Chart Başlangıç
+    // -----------------------------
+    function chartTheme() {
+      const isDark = document.body.classList.contains('dark');
+      return {
+        tick: isDark ? '#e8eaf0' : '#111827',
+        grid: getComputedStyle(document.body).getPropertyValue('--grid').trim() || (isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.08)')
+      };
+    }
+
+    function initChart() {
+      const ctx = el('sensorChart').getContext('2d');
+      const t = chartTheme();
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [
+            { label: 'Sıcaklık (°C)', data: [], borderColor: '#dc3545', backgroundColor: 'transparent', tension: 0.35, pointRadius: 0, yAxisID: 'yTemp' },
+            { label: 'Nem (%)', data: [], borderColor: '#007bff', backgroundColor: 'transparent', tension: 0.35, pointRadius: 0, yAxisID: 'yHum' },
+            { label: 'Pot (0-1023)', data: [], borderColor: '#ffc107', backgroundColor: 'transparent', tension: 0.35, pointRadius: 0, yAxisID: 'yPot' }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: { legend: { labels: { color: t.tick } }, tooltip: { mode: 'index', intersect: false } },
+          interaction: { mode: 'index', intersect: false },
+          scales: {
+            x: { ticks: { color: t.tick }, grid: { color: t.grid }, title: { display: true, text: 'Zaman', color: t.tick } },
+            yTemp: { position: 'left', ticks: { color: t.tick }, grid: { color: t.grid }, title: { display: true, text: '°C', color: t.tick } },
+            yHum: { position: 'right', min:0,max:100, ticks: { color: t.tick }, grid: { drawOnChartArea:false }, title: { display:true, text:'%', color:t.tick } },
+            yPot: { position: 'right', min:0,max:1023, offset:true, ticks:{color:t.tick}, grid:{drawOnChartArea:false}, title:{display:true,text:'0-1023',color:t.tick} }
+          }
         }
+      });
+    }
 
-        // her 2 saniyede bir güncelle
-        setInterval(getLastHeat, 2000);
-        getLastHeat();
-    </script>
+    function applyChartTheme() {
+      if (!chart) return;
+      const t = chartTheme();
+      chart.options.plugins.legend.labels.color = t.tick;
+      chart.options.scales.x.ticks.color = t.tick;
+      chart.options.scales.x.grid.color = t.grid;
+      chart.options.scales.x.title.color = t.tick;
+      chart.options.scales.yTemp.ticks.color = t.tick;
+      chart.options.scales.yTemp.grid.color = t.grid;
+      chart.options.scales.yTemp.title.color = t.tick;
+      chart.options.scales.yHum.ticks.color = t.tick;
+      chart.options.scales.yHum.title.color = t.tick;
+      chart.options.scales.yPot.ticks.color = t.tick;
+      chart.options.scales.yPot.title.color = t.tick;
+      chart.update('none');
+    }
 
+    function updateChart() {
+      if (!chart) return;
+      const latest = sensorHistory.slice(-CHART_VISIBLE_POINTS);
+      chart.data.labels = latest.map((_,i)=>'');
+      chart.data.datasets[0].data = latest.map(d=>d.sic);
+      chart.data.datasets[1].data = latest.map(d=>d.nem);
+      chart.data.datasets[2].data = latest.map(d=>d.pot);
+      chart.update('none');
+      el('visibleCount').textContent = latest.length;
+      el('ramCount').textContent = sensorHistory.length;
+    }
+
+    // -----------------------------
+    // Supabase Sıcaklık Çekme
+    // -----------------------------
+    async function fetchTemperature() {
+      let { data, error } = await db
+        .from('bilsem')
+        .select('sic')
+        .order('id',{ ascending:false })
+        .limit(1);
+
+      if (error) {
+        console.log('Supabase Hata:', error);
+        return;
+      }
+
+      if(data && data.length>0){
+        const values = { sic: data[0].sic };
+        handleParsedValues(values);
+      }
+    }
+
+    // -----------------------------
+    // Demo/Seri veri işleme (diğerleri)
+    // -----------------------------
+    function handleParsedValues(values){
+      // Sıcaklık Supabase’den
+      if(values.sic !== undefined){
+        el('tempText').textContent = values.sic.toFixed(1)+'°C';
+        if(values.sic<15){ el('tempCard').className='card rounded-2xl p-6 temp-cold'; el('tempStatus').textContent='Soğuk'; }
+        else if(values.sic>27){ el('tempCard').className='card rounded-2xl p-6 temp-warm'; el('tempStatus').textContent='Sıcak'; }
+        else{ el('tempCard').className='card rounded-2xl p-6 temp-normal'; el('tempStatus').textContent='Normal'; }
+      }
+
+      // Diğer demo değerler (nem, pot, pump)
+      if(values.nem===undefined){ values.nem=Math.floor(Math.random()*100); }
+      if(values.pot===undefined){ values.pot=Math.floor(Math.random()*1024); }
+      if(values.pump===undefined){ values.pump=Math.round(Math.random()); }
+
+      el('soilText').textContent = values.nem+'%';
+      el('soilBar').style.width = values.nem+'%';
+      el('potText').textContent = values.pot;
+      el('potBar').style.width = (values.pot/1023*100)+'%';
+      el('pumpText').textContent = values.pump?'Pompa Açık':'Pompa Kapalı';
+      el('pumpDot').className = values.pump?'dot on':'dot';
+
+      // RAM ve chart
+      sensorHistory.push({ sic: values.sic, nem: values.nem, pot: values.pot });
+      if(sensorHistory.length>MAX_RAM_POINTS) sensorHistory.shift();
+      updateChart();
+
+      // Son güncelleme
+      el('lastUpdate').textContent = new Date().toLocaleTimeString();
+    }
+
+    // -----------------------------
+    // Demo / otomatik veri üret
+    // -----------------------------
+    el('demoBtn').addEventListener('click',()=>{
+      if(demoTimer) { clearInterval(demoTimer); demoTimer=null; el('demoBtn').textContent='Demo Başlat'; }
+      else { demoTimer=setInterval(()=>handleParsedValues({}),1000); el('demoBtn').textContent='Demo Durdur'; }
+    });
+
+    // -----------------------------
+    // Temayı değiştir
+    // -----------------------------
+    el('themeBtn').addEventListener('click',()=>{
+      document.body.classList.toggle('dark');
+      el('themeBtn').textContent = document.body.classList.contains('dark')?'Açık Tema':'Koyu Tema';
+      applyChartTheme();
+    });
+
+    // -----------------------------
+    // Geçmişi temizle
+    // -----------------------------
+    el('clearBtn').addEventListener('click',()=>{
+      sensorHistory=[];
+      updateChart();
+    });
+
+    // -----------------------------
+    // Init
+    // -----------------------------
+    initChart();
+    fetchTemperature();
+    setInterval(fetchTemperature, 5000); // her 5 saniye
+  </script>
 </body>
 </html>
