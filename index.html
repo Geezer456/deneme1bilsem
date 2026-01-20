@@ -335,18 +335,34 @@
       chart.options.scales.yPot.title.color = t.tick;
       chart.update('none');
     }
+    
+    async function getSupabaseCount() {
+  const { count, error } = await supabase
+    .from("TABLO_ADIN") // buraya tablo adını yaz kanki
+    .select("*", { count: "exact", head: true });
 
-    function updateChart() {
-      if (!chart) return;
-      const latest = sensorHistory.slice(-CHART_VISIBLE_POINTS);
-      chart.data.labels = latest.map((_,i)=>'');
-      chart.data.datasets[0].data = latest.map(d=>d.sic);
-      chart.data.datasets[1].data = latest.map(d=>d.nem);
-      chart.data.datasets[2].data = latest.map(d=>d.pot);
-      chart.update('none');
-      el('visibleCount').textContent = latest.length;
-      el('ramCount').textContent = sensorHistory.length;
-    }
+  if (error) {
+    console.error("Supabase sayım hatası:", error);
+    return 0;
+  }
+
+  return count;
+}
+
+
+async function getSupabaseCount() {
+  const { count, error } = await supabase
+    .from("TABLO_ADIN") // buraya tablo adını yaz kanki
+    .select("*", { count: "exact", head: true });
+
+  if (error) {
+    console.error("Supabase sayım hatası:", error);
+    return 0;
+  }
+
+  return count;
+}
+
 
 // -----------------------------
 // Supabase Tüm Verileri Çekme
