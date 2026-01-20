@@ -135,10 +135,6 @@
           <span id="connDot" class="dot"></span>
           <span id="connText" class="font-semibold">Bağlantı: Bekleniyor</span>
         </span>
-        
-        <button id="clearBtn" class="rounded-full px-5 py-2.5 text-sm font-semibold" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
-          Geçmişi Temizle
-        </button>
         <button id="themeBtn" class="rounded-full px-5 py-2.5 text-sm font-semibold" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
           Açık Tema
         </button>
@@ -416,15 +412,6 @@ async function fetchTemperature() {
       // Son güncelleme
       el('lastUpdate').textContent = new Date().toLocaleTimeString();
     }
-
-    // -----------------------------
-    // Demo / otomatik veri üret
-    // -----------------------------
-    el('demoBtn').addEventListener('click',()=>{
-      if(demoTimer) { clearInterval(demoTimer); demoTimer=null; el('demoBtn').textContent='Demo Başlat'; }
-      else { demoTimer=setInterval(()=>handleParsedValues({}),1000); el('demoBtn').textContent='Demo Durdur'; }
-    });
-
     // -----------------------------
     // Temayı değiştir
     // -----------------------------
@@ -433,15 +420,6 @@ async function fetchTemperature() {
       el('themeBtn').textContent = document.body.classList.contains('dark')?'Açık Tema':'Koyu Tema';
       applyChartTheme();
     });
-
-    // -----------------------------
-    // Geçmişi temizle
-    // -----------------------------
-    el('clearBtn').addEventListener('click',()=>{
-      sensorHistory=[];
-      updateChart();
-    });
-
     // -----------------------------
     // Init
     // -----------------------------
