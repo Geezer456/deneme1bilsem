@@ -263,6 +263,17 @@
     const supabaseUrl = "https://khaaelquexhoxwqbnhjs.supabase.co";
     const supabaseKey = "sb_publishable_w7s6RByp1vSE0gx-KnFLww_vY-78-qZ";
     const db = supabase.createClient(supabaseUrl, supabaseKey);
+    async function fetchTotalCount() {
+      let { count, error } = await db
+        .from("bilsem")
+        .select("*", { count: "exact", head: true });
+
+      if (!error) totalSupabaseCount = count;
+}
+    setInterval(fetchTotalCount, 5000);
+    fetchTotalCount();
+
+
 
     // -----------------------------
     // Temel Ayarlar
@@ -335,6 +346,7 @@
       chart.options.scales.yPot.title.color = t.tick;
       chart.update('none');
     }
+    let totalSupabaseCount = 0;
 
     function updateChart() {
       if (!chart) return;
@@ -345,7 +357,7 @@
       chart.data.datasets[2].data = latest.map(d=>d.pot);
       chart.update('none');
       el('visibleCount').textContent = latest.length;
-      el('ramCount').textContent = sensorHistory.length;
+      el('ramCount').textContent = totalSupabaseCount;
     }
 
 // -----------------------------
